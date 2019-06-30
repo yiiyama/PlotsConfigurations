@@ -6,8 +6,10 @@ ROOT.gStyle.SetOptStat(0)
 
 from common import tnames, ptbinning, etabinning
 
-outputFileName = '/afs/cern.ch/work/y/yiiyama/hww/fakefinal/prompt_conversion_scalefactor.root'
-PLOTDIR = '/afs/cern.ch/user/y/yiiyama/www/plots/hww/prompt_conversion_scalefactor'
+thisdir = os.path.dirname(os.path.realpath(__file__))
+
+outputFileName = '%s/rootFile/prompt_conversion_efficiency.root' % thisdir
+PLOTDIR = '%s/plots/prompt_conversion_efficiency' % thisdir
 
 try:
     os.makedirs(PLOTDIR)
@@ -16,7 +18,7 @@ except OSError:
 
 outputFile = ROOT.TFile.Open(outputFileName, 'recreate')
 
-zmassdir = os.path.dirname(os.path.realpath(__file__)) + '/zmass'
+zmassdir = '%s/zmass' % thisdir
 
 nptbins = len(ptbinning) - 1
 netabins = len(etabinning) - 1
@@ -69,34 +71,41 @@ def style(hist, temp):
     hist.SetMarkerColor(temp.GetMarkerColor())
     hist.SetMarkerStyle(temp.GetMarkerStyle())
 
-## prompt
+## prompt electron
 
-histFile = ROOT.TFile.Open(zmassdir + '/prompt/rootFile/plots_zmass_prompt.root')
+histFile = ROOT.TFile.Open(zmassdir + '/prompt_e/rootFile/plots_zmass_prompt_e.root')
 
 hnormdata = histFile.Get('onZ/nZ/histo_DATA')
 hnormmc = histFile.Get('onZ/nZ/histo_mc')
 
+outputFile.cd()
+heffbasedata = histFile.Get('onZ_trig/nZ/histo_DATA').Clone('prompte_total_data')
+heffbasemc = histFile.Get('onZ_trig/nZ/histo_mc').Clone('prompte_total_mc')
+heffbasedata.Write()
+heffbasemc.Write()
+
 for tag in ['base'] + tnames:
     if tag == 'base':
-        tagsuffix = '_trig'
+        cut = 'onZ_trig'
     else:
-        tagsuffix = '_' + tag
+        cut = 'onZ_' + tag
     
-    htagdata = histFile.Get('onZ%s/nZ/histo_DATA' % tagsuffix)
-    htagmc = histFile.Get('onZ%s/nZ/histo_mc' % tagsuffix)
+    htagdata = histFile.Get('%s/nZ/histo_DATA' % cut)
+    htagmc = histFile.Get('%s/nZ/histo_mc' % cut)
 
     outputFile.cd()
 
-    dataeff = htagdata.Clone('prompt_%s_dataeff' % tag)
-    mceff = htagmc.Clone('prompt_%s_mceff' % tag)
+    datapass = htagdata.Clone('prompte_%s_data' % tag)
+    mcpass = htagdata.Clone('prompte_%s_mc' % tag)
+
+    dataeff = htagdata.Clone('prompte_%s_dataeff' % tag)
+    mceff = htagmc.Clone('prompte_%s_mceff' % tag)
     if tag == 'base':
         dataeff.Divide(hnormdata)
         mceff.Divide(hnormmc)
-        database = htagdata
-        mcbase = htagmc
     else:
-        dataeff.Divide(database)
-        mceff.Divide(mcbase)
+        dataeff.Divide(heffbasedata)
+        mceff.Divide(heffbasemc)
 
     style(dataeff, gdata)
     style(mceff, gmc)
@@ -107,8 +116,8 @@ for tag in ['base'] + tnames:
         dataeff.SetMaximum(1.)
     else:
         dataeff.SetMaximum(0.1)
-    canvas.Print(os.path.join(PLOTDIR, 'eff_prompt_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'eff_prompt_%s.png' % tag))
+    canvas.Print(os.path.join(PLOTDIR, 'eff_prompte_%s.pdf' % tag))
+    canvas.Print(os.path.join(PLOTDIR, 'eff_prompte_%s.png' % tag))
     canvas.Clear()
 
     sf = dataeff.Clone('prompt_%s_datamcSF' % tag)
@@ -119,11 +128,13 @@ for tag in ['base'] + tnames:
     sf.SetMinimum(0.)
     sf.SetMaximum(1.2)
     one.Draw()
-    canvas.Print(os.path.join(PLOTDIR, 'prompt_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'prompt_%s.png' % tag))
+    canvas.Print(os.path.join(PLOTDIR, 'sf_prompte_%s.pdf' % tag))
+    canvas.Print(os.path.join(PLOTDIR, 'sf_prompte_%s.png' % tag))
     canvas.Clear()
 
     sf.Write()
+    datapass.Write()
+    mcpass.Write()
     dataeff.Write()
     mceff.Write()
 
@@ -137,27 +148,34 @@ gHistFile = ROOT.TFile.Open(zmassdir + '/photon/rootFile/plots_zmass_photon.root
 hnormdata = gHistFile.Get('onZ/nZ/histo_DATA')
 hnormmc = gHistFile.Get('onZ/nZ/histo_mc')
 
+outputFile.cd()
+heffbasedata = eHistFile.Get('onZ/nZ/histo_DATA').Clone('conversion_total_data')
+heffbasemc = eHistFile.Get('onZ/nZ/histo_mc').Clone('conversion_total_mc')
+heffbasedata.Write()
+heffbasemc.Write()
+
 for tag in ['base'] + tnames:
     if tag == 'base':
-        tagsuffix = ''
+        cut = 'onZ'
     else:
-        tagsuffix = '_' + tag
+        cut = 'onZ_' + tag
 
-    htagdata = eHistFile.Get('onZ%s/nZ/histo_DATA' % tagsuffix)
-    htagmc = eHistFile.Get('onZ%s/nZ/histo_mc' % tagsuffix)
+    htagdata = eHistFile.Get('%s/nZ/histo_DATA' % cut)
+    htagmc = eHistFile.Get('%s/nZ/histo_mc' % cut)
 
     outputFile.cd()
+
+    datapass = htagdata.Clone('conversion_%s_data' % tag)
+    mcpass = htagmc.Clone('conversion_%s_mc' % tag)
 
     dataeff = htagdata.Clone('conversion_%s_dataeff' % tag)
     mceff = htagmc.Clone('conversion_%s_mceff' % tag)
     if tag == 'base':
         dataeff.Divide(hnormdata)
         mceff.Divide(hnormmc)
-        database = htagdata
-        mcbase = htagmc
     else:
-        dataeff.Divide(database)
-        mceff.Divide(mcbase)
+        dataeff.Divide(heffbasedata)
+        mceff.Divide(heffbasemc)
 
     style(dataeff, gdata)
     style(mceff, gmc)
@@ -263,5 +281,7 @@ for tag in ['base'] + tnames:
 #        canvas.Clear()
 
     sf.Write()
+    datapass.Write()
+    mcpass.Write()
     dataeff.Write()
     mceff.Write()

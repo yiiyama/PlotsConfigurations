@@ -2,7 +2,7 @@
 
 treeName = 'Events'
 
-tag = 'zmass_prompt'
+tag = 'zmass_prompt_e'
 
 # used by mkShape to define output directory for root files
 outputDir = 'rootFile'
