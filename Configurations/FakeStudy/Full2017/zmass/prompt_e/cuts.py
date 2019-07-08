@@ -19,8 +19,8 @@ def addcut(name, exprs):
 baseSel = ['Electron_isBaseline', 'Electron_pt > 13.', 'Electron_pt < 53.', 'TMath::Abs(Electron_eta) < 2.5', 'Electron_OS2E_isProbe']
 onZSel = ['Electron_OS2E_mee > 80.', 'Electron_OS2E_mee < 100.']
 # cannot reliably use TrigObj because legs of the dielectron trigger are not saved
-#targetSel = baseSel + ['Electron_OS2E_isCaloIdLTrackIdLIsoVL']
-targetSel = baseSel + ['(run == 1 || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL)']
+#targetSel = baseSel + ['Electron_isCaloIdLTrackIdLIsoVL']
+targetSel = baseSel + ['HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL']
 
 supercut = 'passOppositeSignDielectronSkim && Sum$(%s) != 0' % (' && '.join(baseSel))
 

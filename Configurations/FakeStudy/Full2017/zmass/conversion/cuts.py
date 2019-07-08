@@ -17,8 +17,7 @@ def addcut(name, exprs):
     cuts[name] = {'expr': ' && '.join(exprs)}
 
 # uncomment once reskimmed
-#baseSel = ['Electron_isBaseline', 'Electron_pt > 13.', 'Electron_pt < 53.', 'TMath::Abs(Electron_eta) < 2.5', 'Electron_2ME_isCaloIdLTrackIdLIsoVL']
-baseSel = ['Electron_isBaseline', 'Electron_pt > 13.', 'Electron_pt < 53.', 'TMath::Abs(Electron_eta) < 2.5']
+baseSel = ['Electron_isBaseline', 'Electron_pt > 13.', 'Electron_pt < 53.', 'TMath::Abs(Electron_eta) < 2.5', 'Electron_isCaloIdLTrackIdLIsoVL']
 baseSel += ['Electron_2ME_minDRMu < 0.8', 'Electron_2ME_minDRMu > 0.1', 'Electron_2ME_mmme + mmm_2ME < 185.']
 onZSel = ['Electron_2ME_mmme > 80.', 'Electron_2ME_mmme < 100.']
 
