@@ -1,7 +1,9 @@
 import os
 import sys
 
-PLOTDIR = '/afs/cern.ch/user/y/yiiyama/www/plots/hww/zmass'
+thisdir = os.path.dirname(os.path.realpath(__file__))
+
+PLOTDIR = '%s/plots/zmass' % thisdir
 
 source = sys.argv[1]
 del sys.argv[1:]
@@ -10,12 +12,7 @@ import ROOT
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
-try:
-    from common import tnames
-except ImportError:
-    confdir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    sys.path.append(confdir)
-    from common import tnames, ptbinning, etabinning
+from common import tnames, ptbinning, etabinning
 
 try:
     os.makedirs(os.path.join(PLOTDIR, source))
@@ -60,23 +57,23 @@ def style(hist, temp):
     hist.SetFillColor(temp.GetFillColor())
     hist.SetFillStyle(temp.GetFillStyle())
 
-histFile = ROOT.TFile.Open(os.path.join(os.path.dirname(__file__), source, 'rootFile', 'plots_zmass_%s.root' % source))
+histFile = ROOT.TFile.Open(os.path.join(thisdir, 'zmass', source, 'rootFile', 'plots_zmass_%s.root' % source))
 
 if source == 'photon':
-    tags = ['notag']
+    tags = ['base']
 else:
-    tags = ['notag'] + tnames
+    tags = ['base'] + tnames
 
 for tag in tags:
-    if tag == 'notag':
-        stag = ''
+    if tag == 'base':
+        cut = 'base'
     else:
-        stag = '_' + tag
+        cut = 'base_%s' % tag
 
     canvas.cd()
     
-    hdata = histFile.Get('base%s/mass/histo_DATA' % stag)
-    hmc = histFile.Get('base%s/mass/histo_mc' % stag)
+    hdata = histFile.Get('%s/mass/histo_DATA' % cut)
+    hmc = histFile.Get('%s/mass/histo_mc' % cut)
     style(hdata, gdata)
     style(hmc, gmc)
     hmc.Draw('HIST')
@@ -100,10 +97,16 @@ for tag in tags:
         hdataptmerged = template.Clone('hdataptmerged')
         hmcptmerged = template.Clone('hdataptmerged')
         for ipt in range(nptbins):
+            if tag == 'base':
+                cut = 'basebinned_pt%d_eta%d' % (ipt, ieta)
+            else:
+                cut = 'basebinned_%s_pt%d_eta%d' % (tag, ipt, ieta)
+
+            
             matcanvas.cd(nptbins * (netabins - 1 - ieta) + 1 + ipt)
             
-            hdata = histFile.Get('basebinned%s_pt%d_eta%d/mass/histo_DATA' % (stag, ipt, ieta))
-            hmc = histFile.Get('basebinned%s_pt%d_eta%d/mass/histo_mc' % (stag, ipt, ieta))
+            hdata = histFile.Get('%s/mass/histo_DATA' % cut)
+            hmc = histFile.Get('%s/mass/histo_mc' % cut)
             style(hdata, gdata)
             style(hmc, gmc)
             hmc.Draw('HIST')

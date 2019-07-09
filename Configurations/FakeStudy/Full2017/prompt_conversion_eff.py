@@ -12,6 +12,11 @@ outputFileName = '%s/rootFile/prompt_conversion_efficiency.root' % thisdir
 PLOTDIR = '%s/plots/prompt_conversion_efficiency' % thisdir
 
 try:
+    os.makedirs(thisdir + '/rootFile')
+except OSError:
+    pass
+
+try:
     os.makedirs(PLOTDIR)
 except OSError:
     pass
@@ -22,6 +27,7 @@ zmassdir = '%s/zmass' % thisdir
 
 nptbins = len(ptbinning) - 1
 netabins = len(etabinning) - 1
+nbins = nptbins * netabins
 
 canvas = ROOT.TCanvas('c1', 'c1', 600, 600)
 canvas.SetLeftMargin(0.15)
@@ -71,6 +77,143 @@ def style(hist, temp):
     hist.SetMarkerColor(temp.GetMarkerColor())
     hist.SetMarkerStyle(temp.GetMarkerStyle())
 
+def makesf(name, dataeff, mceff, template):
+    sf = template.Clone(name)
+    sf.Reset()
+    for iX in range(1, sf.GetNbinsX() + 1):
+        data = dataeff.GetY()[iX - 1]
+        mc = mceff.GetY()[iX - 1]
+        if data != 0.:
+            datarelerr2 = math.pow(dataeff.GetErrorY(iX - 1) / data, 2.)
+        else:
+            datarelerr2 = 0.
+        if mc != 0.:
+            mcrelerr2 = math.pow(mceff.GetErrorY(iX - 1) / mc, 2.)
+            sf.SetBinContent(iX, data / mc)
+            sf.SetBinError(iX, data / mc * math.sqrt(datarelerr2 + mcrelerr2))
+        else:
+            sf.SetBinContent(iX, 0.)
+            sf.SetBinError(iX, 0.)
+
+    return sf
+
+def compute(name, histFile, basecut, hnormdata, hnormmc, ganging={}):
+    for tag in ['base'] + tnames:
+        if tag == 'base':
+            cut = basecut
+        else:
+            cut = 'onZ_' + tag
+    
+        htagdata = histFile.Get('%s/nZ/histo_DATA' % cut)
+        htagmc = histFile.Get('%s/nZ/histo_mc' % cut)
+
+        outputFile.cd()
+        if tag == 'base':
+            heffbasedata = htagdata.Clone('%s_total_data' % name)
+            heffbasemc = htagmc.Clone('%s_total_mc' % name)
+            heffbasedata.Write()
+            heffbasemc.Write()
+   
+        datapass = htagdata.Clone('%s_%s_data' % (name, tag))
+        mcpass = htagmc.Clone('%s_%s_mc' % (name, tag))
+    
+        if tag == 'base':
+            datanorm = hnormdata
+            mcnorm = hnormmc
+        else:
+            datanorm = heffbasedata
+            mcnorm = heffbasemc
+            
+        dataeff = ROOT.TGraphAsymmErrors(datapass, datanorm)
+        mceff = ROOT.TGraphAsymmErrors(mcpass, mcnorm)
+
+        ymax = max([dataeff.GetY()[ip] for ip in range(dataeff.GetN())] + [mceff.GetY()[ip] for ip in range(mceff.GetN())])
+        ymax = math.ceil(ymax * 10.) * 0.1
+    
+        style(dataeff, gdata)
+        style(mceff, gmc)
+        dataeff.Draw('APE')
+        mceff.Draw('PE')
+        dataeff.SetMinimum(0.)
+        dataeff.SetMaximum(ymax)
+        dataeff.GetXaxis().SetLimits(0., nbins)
+        canvas.Print(os.path.join(PLOTDIR, 'eff_%s_%s.pdf' % (name, tag)))
+        canvas.Print(os.path.join(PLOTDIR, 'eff_%s_%s.png' % (name, tag)))
+        canvas.Clear()
+    
+        sf = makesf('%s_%s_datamcSF' % (name, tag), dataeff, mceff, datapass)
+    
+        style(sf, graw)
+        sf.Draw('EP')
+        sf.SetMinimum(0.)
+        sf.SetMaximum(2.)
+        one.Draw()
+        canvas.Print(os.path.join(PLOTDIR, 'sf_%s_%s.pdf' % (name, tag)))
+        canvas.Print(os.path.join(PLOTDIR, 'sf_%s_%s.png' % (name, tag)))
+        canvas.Clear()
+
+        if tag in ganging:
+            sf.SetName('%s_%s_datamcSFraw' % (name, tag))
+            sf.Write()
+            sfraw = sf
+
+            datapass.SetName('%s_%s_dataraw' % (name, tag))
+            datapass.Write()
+            datapassraw = datapass
+            mcpass.SetName('%s_%s_mcraw' % (name, tag))
+            mcpass.Write()
+            mcpassraw = mcpass
+
+            dataeff.Write('%s_%s_dataeffraw' % (name, tag))
+            dataeffraw = dataeff
+            mceff.Write('%s_%s_mceffraw' % (name, tag))
+            mceffraw = mceff
+    
+            outputFile.cd()
+    
+            datapass = htagdata.Clone('%s_%s_data' % (name, tag))
+            mcpass = htagmc.Clone('%s_%s_mc' % (name, tag))
+
+            datanorm = datanorm.Clone('datanorm')
+            mcnorm = mcnorm.Clone('mcnorm')
+
+            for hist in [datapass, mcpass, datanorm, mcnorm]:
+                for bingroup in ganging[tag]:
+                    c = 0.
+                    e2 = 0.
+                    for ibin in bingroup:
+                        c += hist.GetBinContent(ibin)
+                        e2 += math.pow(hist.GetBinError(ibin), 2.)
+    
+                    for ibin in bingroup:
+                        hist.SetBinContent(ibin, c)
+                        hist.SetBinError(ibin, math.sqrt(e2))
+
+            dataeff = ROOT.TGraphAsymmErrors(datapass, datanorm)
+            mceff = ROOT.TGraphAsymmErrors(mcpass, mcnorm)
+
+            datanorm.Delete()
+            mcnorm.Delete()
+
+            sf = makesf('%s_%s_datamcSF' % (name, tag), dataeff, mceff, datapass)
+    
+            style(sf, gmerged)
+            sfraw.Draw('EP')
+            sf.Draw('EP SAME')
+            sfraw.SetMinimum(0.)
+            sfraw.SetMaximum(2.)
+            one.Draw()
+            canvas.Print(os.path.join(PLOTDIR, 'sfmerged_%s_%s.pdf' % (name, tag)))
+            canvas.Print(os.path.join(PLOTDIR, 'sfmerged_%s_%s.png' % (name, tag)))
+            canvas.Clear()
+    
+        sf.Write()
+        datapass.Write()
+        mcpass.Write()
+        dataeff.Write('%s_%s_dataeff' % (name, tag))
+        mceff.Write('%s_%s_mceff' % (name, tag))
+
+
 ## prompt electron
 
 histFile = ROOT.TFile.Open(zmassdir + '/prompt_e/rootFile/plots_zmass_prompt_e.root')
@@ -78,65 +221,7 @@ histFile = ROOT.TFile.Open(zmassdir + '/prompt_e/rootFile/plots_zmass_prompt_e.r
 hnormdata = histFile.Get('onZ/nZ/histo_DATA')
 hnormmc = histFile.Get('onZ/nZ/histo_mc')
 
-outputFile.cd()
-heffbasedata = histFile.Get('onZ_trig/nZ/histo_DATA').Clone('prompte_total_data')
-heffbasemc = histFile.Get('onZ_trig/nZ/histo_mc').Clone('prompte_total_mc')
-heffbasedata.Write()
-heffbasemc.Write()
-
-for tag in ['base'] + tnames:
-    if tag == 'base':
-        cut = 'onZ_trig'
-    else:
-        cut = 'onZ_' + tag
-    
-    htagdata = histFile.Get('%s/nZ/histo_DATA' % cut)
-    htagmc = histFile.Get('%s/nZ/histo_mc' % cut)
-
-    outputFile.cd()
-
-    datapass = htagdata.Clone('prompte_%s_data' % tag)
-    mcpass = htagdata.Clone('prompte_%s_mc' % tag)
-
-    dataeff = htagdata.Clone('prompte_%s_dataeff' % tag)
-    mceff = htagmc.Clone('prompte_%s_mceff' % tag)
-    if tag == 'base':
-        dataeff.Divide(hnormdata)
-        mceff.Divide(hnormmc)
-    else:
-        dataeff.Divide(heffbasedata)
-        mceff.Divide(heffbasemc)
-
-    style(dataeff, gdata)
-    style(mceff, gmc)
-    dataeff.Draw('EP')
-    mceff.Draw('EP SAME')
-    dataeff.SetMinimum(0.)
-    if tag in ['base', 'ptag']:
-        dataeff.SetMaximum(1.)
-    else:
-        dataeff.SetMaximum(0.1)
-    canvas.Print(os.path.join(PLOTDIR, 'eff_prompte_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'eff_prompte_%s.png' % tag))
-    canvas.Clear()
-
-    sf = dataeff.Clone('prompt_%s_datamcSF' % tag)
-    sf.Divide(mceff)
-
-    style(sf, graw)
-    sf.Draw('EP')
-    sf.SetMinimum(0.)
-    sf.SetMaximum(1.2)
-    one.Draw()
-    canvas.Print(os.path.join(PLOTDIR, 'sf_prompte_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'sf_prompte_%s.png' % tag))
-    canvas.Clear()
-
-    sf.Write()
-    datapass.Write()
-    mcpass.Write()
-    dataeff.Write()
-    mceff.Write()
+compute('prompte', histFile, 'onZ_trig', hnormdata, hnormmc)
 
 histFile.Close()
 
@@ -148,140 +233,9 @@ gHistFile = ROOT.TFile.Open(zmassdir + '/photon/rootFile/plots_zmass_photon.root
 hnormdata = gHistFile.Get('onZ/nZ/histo_DATA')
 hnormmc = gHistFile.Get('onZ/nZ/histo_mc')
 
-outputFile.cd()
-heffbasedata = eHistFile.Get('onZ/nZ/histo_DATA').Clone('conversion_total_data')
-heffbasemc = eHistFile.Get('onZ/nZ/histo_mc').Clone('conversion_total_mc')
-heffbasedata.Write()
-heffbasemc.Write()
+ganging = {
+    'base': [[x, x + 1, x + 2] for x in range(1, 31, 5)],
+    'ptag': [range(1, 37)]
+}
 
-for tag in ['base'] + tnames:
-    if tag == 'base':
-        cut = 'onZ'
-    else:
-        cut = 'onZ_' + tag
-
-    htagdata = eHistFile.Get('%s/nZ/histo_DATA' % cut)
-    htagmc = eHistFile.Get('%s/nZ/histo_mc' % cut)
-
-    outputFile.cd()
-
-    datapass = htagdata.Clone('conversion_%s_data' % tag)
-    mcpass = htagmc.Clone('conversion_%s_mc' % tag)
-
-    dataeff = htagdata.Clone('conversion_%s_dataeff' % tag)
-    mceff = htagmc.Clone('conversion_%s_mceff' % tag)
-    if tag == 'base':
-        dataeff.Divide(hnormdata)
-        mceff.Divide(hnormmc)
-    else:
-        dataeff.Divide(heffbasedata)
-        mceff.Divide(heffbasemc)
-
-    style(dataeff, gdata)
-    style(mceff, gmc)
-    dataeff.Draw('EP')
-    mceff.Draw('EP SAME')
-    dataeff.SetMinimum(0.)
-    if tag in ['base', 'ptag', 'gtag']:
-        dataeff.SetMaximum(1.)
-    else:
-        dataeff.SetMaximum(0.2)
-    canvas.Print(os.path.join(PLOTDIR, 'eff_conversion_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'eff_conversion_%s.png' % tag))
-    canvas.Clear()
-
-    sf = htagdata.Clone('conversion_%s_datamcSF' % tag)
-    sf.Divide(hnormdata)
-    sf.Multiply(hnormmc)
-    sf.Divide(htagmc)
-
-    style(sf, graw)
-    sf.Draw('EP')
-    sf.SetMinimum(0.)
-    sf.SetMaximum(2.)
-    one.Draw()
-    canvas.Print(os.path.join(PLOTDIR, 'conversion_%s.pdf' % tag))
-    canvas.Print(os.path.join(PLOTDIR, 'conversion_%s.png' % tag))
-    canvas.Clear()
-
-#    if tag in ['ptag', 'btag', 'ctag', 'ltag']:
-#        # stat too small for these tags - merge pt bins
-#        sf.SetName('conversion_%s_datamcSFraw' % tag)
-#        sf.Write()
-#        sfraw = sf
-#
-#        dataeff.SetName('conversion_%s_dataeffraw' % tag)
-#        dataeff.Write()
-#        mceff.SetName('conversion_%s_mceffraw' % tag)
-#        mceff.Write()
-#
-#        outputFile.cd()
-#
-#        dataeff = htagdata.Clone('conversion_%s_dataeff' % tag)
-#        dataeff.Reset()
-#        mceff = htagmc.Clone('conversion_%s_mceff' % tag)
-#        mceff.Reset()
-#
-#        if False:
-#            for ieta in range(netabins):
-#                tagdataTotal = 0.
-#                tagmcTotal = 0.
-#                normdataTotal = 0.
-#                normmcTotal = 0.
-#        
-#                for ipt in range(nptbins):
-#                    ibin = 1 + ieta + ipt * netabins
-#                    tagdataTotal += htagdata.GetBinContent(ibin)
-#                    tagmcTotal += htagmc.GetBinContent(ibin)
-#                    normdataTotal += hnormdata.GetBinContent(ibin)
-#                    normmcTotal += hnormmc.GetBinContent(ibin)
-#    
-#                cont = (tagdataTotal / normdataTotal) / (tagmcTotal / normmcTotal)
-#                err = cont * math.sqrt(1. / tagdataTotal + 1. / normdataTotal + 1. / tagmcTotal + 1. / normmcTotal)
-#        
-#                for ipt in range(nptbins):
-#                    ibin = 1 + ieta + ipt * netabins
-#                    sf.SetBinContent(ibin, cont)
-#                    sf.SetBinError(ibin, err)
-#
-#            plotname = 'conversion_%s_ptmerged' % tag
-#
-#        else:
-#            tagdataTotal = htagdata.GetSumOfWeights()
-#            tagmcTotal = htagmc.GetSumOfWeights()
-#            normdataTotal = database.GetSumOfWeights()
-#            normmcTotal = mcbase.GetSumOfWeights()
-#        
-#            datacont = tagdataTotal / normdataTotal
-#            dataerr = datacont * math.sqrt(1. / tagdataTotal + 1. / normdataTotal)
-#            mccont = tagmcTotal / normmcTotal
-#            mcerr = mccont * math.sqrt(1. / tagmcTotal + 1. / normmcTotal)
-#    
-#            for ieta in range(netabins):
-#                for ipt in range(nptbins):
-#                    ibin = 1 + ieta + ipt * netabins
-#                    dataeff.SetBinContent(ibin, datacont)
-#                    dataeff.SetBinError(ibin, dataerr)
-#                    mceff.SetBinContent(ibin, mccont)
-#                    mceff.SetBinError(ibin, mcerr)
-#
-#            plotname = 'conversion_%s_allmerged' % tag
-#
-#        sf = dataeff.Clone('conversion_%s_datamcSF' % tag)
-#        sf.Divide(mceff)
-#
-#        style(sf, gmerged)
-#        sfraw.Draw('EP')
-#        sf.Draw('EP SAME')
-#        sfraw.SetMinimum(0.)
-#        sfraw.SetMaximum(2.)
-#        one.Draw()
-#        canvas.Print(os.path.join(PLOTDIR, '%s.pdf' % plotname))
-#        canvas.Print(os.path.join(PLOTDIR, '%s.png' % plotname))
-#        canvas.Clear()
-
-    sf.Write()
-    datapass.Write()
-    mcpass.Write()
-    dataeff.Write()
-    mceff.Write()
+compute('conversion', eHistFile, 'onZ', hnormdata, hnormmc, ganging=ganging)
