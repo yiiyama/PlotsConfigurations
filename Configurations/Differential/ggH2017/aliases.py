@@ -240,7 +240,7 @@ thus = [
 
 for thu in thus:
     aliases[thu] = {
-        'linesToAdd': ['.L %s/Differential/gghuncertainty.cc+' % configurations],
+        'linesToAdd': ['.L %s/Differential/src/gghuncertainty.cc+' % configurations],
         'class': 'GGHUncertainty',
         'args': (thu,),
         'samples': ['ggH_hww']

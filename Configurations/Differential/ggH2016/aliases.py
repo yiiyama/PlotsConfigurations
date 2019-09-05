@@ -226,7 +226,7 @@ aliases['SFweightMuDown'] = {
 }
 
 aliases['nllWOTF'] = {
-    'linesToAdd': ['.L %s/Differential/nllW.cc+' % configurations],
+    'linesToAdd': ['.L %s/Differential/src/nllW.cc+' % configurations],
     'class': 'WWNLLW',
     'args': ('central',),
     'samples': ['WW']
@@ -246,7 +246,7 @@ aliases['lhe_mW2'] = {
 
 # use HTXS_njets30 when moving to NanoAODv5 for all trees
 aliases['nCleanGenJet'] = {
-    'linesToAdd': ['.L %s/Differential/ngenjet.cc+' % configurations],
+    'linesToAdd': ['.L %s/Differential/src/ngenjet.cc+' % configurations],
     'class': 'CountGenJet',
     'samples': signals
 }
@@ -266,7 +266,7 @@ thus = [
 
 for thu in thus:
     aliases[thu] = {
-        'linesToAdd': ['.L %s/Differential/gghuncertainty.cc+' % configurations],
+        'linesToAdd': ['.L %s/Differential/src/gghuncertainty.cc+' % configurations],
         'class': 'GGHUncertainty',
         'args': (thu,),
         'samples': ['ggH_hww'],
