@@ -72,19 +72,19 @@ for out_bin, in_bins in observable_bin_mapping.iteritems():
 cut_merging = collections.defaultdict(list)
 
 for cut in cuts:
-    matches = re.match('(.+_NJ_[01]_.+[em][em])[mp][mp](_[0-9]+)', cut)
+    matches = re.match('(.+_NJ_[01]_.+[em][em])[mp][mp]', cut)
     if matches:
-        cut_merging[matches.group(1) + matches.group(2)].append(cut)
+        cut_merging[matches.group(1)].append(cut)
         continue
 
-    matches = re.match('(.+_NJ_2_.+)[em][em][mp][mp](_[0-9]+)', cut)
+    matches = re.match('(.+_NJ_2_.+)[em][em][mp][mp]', cut)
     if matches:
-        cut_merging[matches.group(1) + matches.group(2)].append(cut)
+        cut_merging[matches.group(1)].append(cut)
         continue
 
-    matches = re.match('(.+_NJ_(?:3|GE4))_.+[em][em][mp][mp](_[0-9]+)', cut)
+    matches = re.match('(.+_NJ_(?:3|GE4))_.+[em][em][mp][mp]', cut)
     if matches:
-        cut_merging[matches.group(1) + matches.group(2)].append(cut)
+        cut_merging[matches.group(1)].append(cut)
         continue
 
 nuisances = update_nuisances(nuisances, samples, cuts, sample_merging, cut_merging)

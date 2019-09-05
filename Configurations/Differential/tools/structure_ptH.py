@@ -85,7 +85,7 @@ for out_bin, in_bins in observable_bin_mapping.iteritems():
 cut_merging = collections.defaultdict(list)
 
 for cut in cuts:
-    matches = re.match('(.+_)(PTH_(?:[0-9]+_[0-9]+|GT[0-9]+))(_catpt2(?:ge|lt)20)([em][em])[mp][mp](_[0-9]+)', cut)
+    matches = re.match('(.+_)(PTH_(?:[0-9]+_[0-9]+|GT[0-9]+))(_catpt2(?:ge|lt)20)([em][em])[mp][mp]', cut)
     if matches:
         for out_bin, in_bins in observable_bin_mapping.iteritems():
             if matches.group(2) in in_bins:
@@ -97,16 +97,16 @@ for cut in cuts:
         ncat = category_scheme[ibin]
 
         if ncat == 4:
-            cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(4) + matches.group(5)].append(cut)
+            cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(4)].append(cut)
         elif ncat == 3:
             if matches.group(3) == '_catpt2ge20':
-                cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(5)].append(cut)
+                cut_merging[matches.group(1) + out_bin + matches.group(3)].append(cut)
             else:
-                cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(4) + matches.group(5)].append(cut)
+                cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(4)].append(cut)
         elif ncat == 2:
-            cut_merging[matches.group(1) + out_bin + matches.group(3) + matches.group(5)].append(cut)
+            cut_merging[matches.group(1) + out_bin + matches.group(3)].append(cut)
         elif ncat == 1:
-            cut_merging[matches.group(1) + out_bin + matches.group(5)].append(cut)
+            cut_merging[matches.group(1) + out_bin].append(cut)
 
         continue
 

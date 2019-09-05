@@ -72,9 +72,9 @@ for cut in sorted(os.listdir(args.inpath)):
     cuts.append(cut)
 
     if isCR:
-        matches = re.match('hww_CR_cat((?:PTH|NJ)_(?:[0-9]+|G[ET][0-9]+|[0-9]+_[0-9]+))_[a-zA-Z]+_[0-9]+$', cut)
+        matches = re.match('hww_CR_cat((?:PTH|NJ)_(?:[0-9]+|G[ET][0-9]+|[0-9]+_[0-9]+))_[a-zA-Z]+$', cut)
     else:
-        matches = re.match('hww_((?:PTH|NJ)_(?:[0-9]+|G[ET][0-9]+|[0-9]+_[0-9]+))(?:_cat(.+)|)_[0-9]+$', cut)
+        matches = re.match('hww_((?:PTH|NJ)_(?:[0-9]+|G[ET][0-9]+|[0-9]+_[0-9]+))(?:_cat(.+)|)$', cut)
 
     obsBin = matches.group(1)
     if obsBin not in observableBins:

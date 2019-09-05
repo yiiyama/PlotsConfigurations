@@ -483,8 +483,8 @@ class HistogramMerger(object):
 def makeCutMerging(cuts, outBins, recoBinMap, splitScheme):
     cutMerging = collections.defaultdict(list)
 
-    srpattern = '(.+_)((?:PTH|NJ)_[0-9GET]+(?:_[0-9]+|))_cat(pt2(?:lt|ge)20)([em][em])([mp][mp])_([0-9]+)$'
-    crpattern = '(.+_CR_cat)((?:PTH|NJ)_[0-9GET]+(?:_[0-9]+|))_(.+_[0-9]+)$'
+    srpattern = '(.+_)((?:PTH|NJ)_[0-9GET]+(?:_[0-9]+|))_cat(pt2(?:lt|ge)20)([em][em])([mp][mp])$'
+    crpattern = '(.+_CR_cat)((?:PTH|NJ)_[0-9GET]+(?:_[0-9]+|))_(.+)$'
 
     recoBinRMap = {}
     for out, ins in recoBinMap.iteritems():
@@ -497,18 +497,18 @@ def makeCutMerging(cuts, outBins, recoBinMap, splitScheme):
             iout = outBins.index(outBin)
 
             if splitScheme[iout] == 8:
-                outcut = ('%s{out}_cat%s%s%s_%s' % tuple(matches.group(i) for i in [1, 3, 4, 5, 6])).format(out=outBin)
+                outcut = ('%s{out}_cat%s%s%s' % tuple(matches.group(i) for i in [1, 3, 4, 5])).format(out=outBin)
                 cutMerging[outcut].append(cut)
             elif splitScheme[iout] == 4 or \
                  splitScheme[iout] == 3 and matches.group(3) == 'pt2lt20':
-                outcut = ('%s{out}_cat%s%s_%s' % tuple(matches.group(i) for i in [1, 3, 4, 6])).format(out=outBin)
+                outcut = ('%s{out}_cat%s%s' % tuple(matches.group(i) for i in [1, 3, 4])).format(out=outBin)
                 cutMerging[outcut].append(cut)
             elif splitScheme[iout] == 3 and matches.group(3) == 'pt2ge20' or \
                  splitScheme[iout] == 2:
-                outcut = ('%s{out}_cat%s_%s' % tuple(matches.group(i) for i in [1, 3, 6])).format(out=outBin)
+                outcut = ('%s{out}_cat%s' % tuple(matches.group(i) for i in [1, 3])).format(out=outBin)
                 cutMerging[outcut].append(cut)
             elif splitScheme[iout] == 1:
-                outcut = ('%s{out}_%s' % tuple(matches.group(i) for i in [1, 6])).format(out=outBin)
+                outcut = ('%s{out}' % matches.group(1)).format(out=outBin)
                 cutMerging[outcut].append(cut)
 
             continue
@@ -518,7 +518,7 @@ def makeCutMerging(cuts, outBins, recoBinMap, splitScheme):
             outBin = recoBinRMap[matches.group(2)]
             iout = outBins.index(outBin)
 
-            outcut = ('%s{out}_%s' % tuple(matches.group(i) for i in [1, 3])).format(out=outBin)
+            outcut = ('%s{out}' % matches.group(1)).format(out=outBin)
             cutMerging[outcut].append(cut)
 
             continue
